@@ -1,0 +1,1441 @@
+ARM GAS  /tmp/ccMa26Q3.s 			page 1
+
+
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 1
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 4
+  11              		.file	"ws2812.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.WS2812_Write,"ax",%progbits
+  16              		.align	1
+  17              		.global	WS2812_Write
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	WS2812_Write:
+  25              	.LVL0:
+  26              	.LFB40:
+  27              		.file 1 "Src/ws2812.c"
+   1:Src/ws2812.c  **** /*
+   2:Src/ws2812.c  ****   *****************************************************************************
+   3:Src/ws2812.c  ****   * @file    ws2812.c
+   4:Src/ws2812.c  ****   * @author  
+   5:Src/ws2812.c  ****   * @brief   Source file of ws2812 Controller using SPI.
+   6:Src/ws2812.c  ****   *****************************************************************************
+   7:Src/ws2812.c  **** */
+   8:Src/ws2812.c  **** 
+   9:Src/ws2812.c  **** #include <stdint.h>
+  10:Src/ws2812.c  **** #include "ws2812.h"
+  11:Src/ws2812.c  **** #include "stm32f0xx_hal.h"
+  12:Src/ws2812.c  **** 
+  13:Src/ws2812.c  **** 
+  14:Src/ws2812.c  **** extern SPI_HandleTypeDef hspi1;
+  15:Src/ws2812.c  **** // 24 bit for every pixel and every bit is expanded to 3 bit
+  16:Src/ws2812.c  **** static uint8_t WS2812_Buffer[NUM_PIXELS * 24 * 3 / 8];
+  17:Src/ws2812.c  **** // According to datasheet > 50 us delay at the end of data frame.
+  18:Src/ws2812.c  **** static uint8_t WS2812_Reset[2] = {0x00, 0x00};
+  19:Src/ws2812.c  **** 
+  20:Src/ws2812.c  **** /**
+  21:Src/ws2812.c  ****   * @brief  Fills WS2812_Buffer[]
+  22:Src/ws2812.c  ****   * 
+  23:Src/ws2812.c  ****   * PixelNumber is the number of WS2812 in a row beginning at 0. Try not to
+  24:Src/ws2812.c  ****   * connect more than 512 WS2812 pixels in a row because of refresh rate.
+  25:Src/ws2812.c  ****   * 
+  26:Src/ws2812.c  ****   * GRBColor is a 24-bit (3-bytes) data for one WS2812 pixel only. The first
+  27:Src/ws2812.c  ****   * byte is GREEN value, The second byte is RED. The third byte is BLUE.
+  28:Src/ws2812.c  ****   */
+  29:Src/ws2812.c  **** 	
+  30:Src/ws2812.c  **** void WS2812_Write(uint8_t PixelNumber, unsigned long GRBColor){
+  28              		.loc 1 30 63 view -0
+ARM GAS  /tmp/ccMa26Q3.s 			page 2
+
+
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 16
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		.loc 1 30 63 is_stmt 0 view .LVU1
+  33 0000 10B5     		push	{r4, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 4, -8
+  37              		.cfi_offset 14, -4
+  38 0002 84B0     		sub	sp, sp, #16
+  39              	.LCFI1:
+  40              		.cfi_def_cfa_offset 24
+  31:Src/ws2812.c  ****   // 24 bit for every pixel and every bit is expanded to 3 bit
+  32:Src/ws2812.c  ****   // Can then output 110 for WS2812B logic '1' -> 0x6
+  33:Src/ws2812.c  ****   // and 100 for WS2812B logic '0' -> 0x4
+  34:Src/ws2812.c  ****   uint32_t encoding = 0;
+  41              		.loc 1 34 3 is_stmt 1 view .LVU2
+  42              	.LVL1:
+  35:Src/ws2812.c  ****   uint8_t TempBuffer[9];
+  43              		.loc 1 35 3 view .LVU3
+  36:Src/ws2812.c  ****   uint8_t index;
+  44              		.loc 1 36 3 view .LVU4
+  37:Src/ws2812.c  ****     
+  38:Src/ws2812.c  ****   // GREEN byte
+  39:Src/ws2812.c  ****   index = 0;
+  45              		.loc 1 39 3 view .LVU5
+  40:Src/ws2812.c  ****   encoding = 0;
+  46              		.loc 1 40 3 view .LVU6
+  41:Src/ws2812.c  ****   while (index < 8){
+  47              		.loc 1 41 3 view .LVU7
+  39:Src/ws2812.c  ****   encoding = 0;
+  48              		.loc 1 39 9 is_stmt 0 view .LVU8
+  49 0004 0023     		movs	r3, #0
+  40:Src/ws2812.c  ****   encoding = 0;
+  50              		.loc 1 40 12 view .LVU9
+  51 0006 0022     		movs	r2, #0
+  52              		.loc 1 41 9 view .LVU10
+  53 0008 04E0     		b	.L2
+  54              	.LVL2:
+  55              	.L3:
+  42:Src/ws2812.c  ****     encoding = encoding << 3;
+  43:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+  44:Src/ws2812.c  ****       encoding |= 0x6;
+  45:Src/ws2812.c  ****     }
+  46:Src/ws2812.c  ****     else{
+  47:Src/ws2812.c  ****       encoding |= 0x4;
+  56              		.loc 1 47 7 is_stmt 1 view .LVU11
+  57              		.loc 1 47 16 is_stmt 0 view .LVU12
+  58 000a 0424     		movs	r4, #4
+  59 000c 2243     		orrs	r2, r4
+  60              	.LVL3:
+  61              	.L4:
+  48:Src/ws2812.c  ****     }
+  49:Src/ws2812.c  ****     GRBColor = GRBColor << 1;
+  62              		.loc 1 49 5 is_stmt 1 view .LVU13
+  63              		.loc 1 49 14 is_stmt 0 view .LVU14
+  64 000e 4900     		lsls	r1, r1, #1
+ARM GAS  /tmp/ccMa26Q3.s 			page 3
+
+
+  65              	.LVL4:
+  50:Src/ws2812.c  ****     index++;
+  66              		.loc 1 50 5 is_stmt 1 view .LVU15
+  67              		.loc 1 50 10 is_stmt 0 view .LVU16
+  68 0010 0133     		adds	r3, r3, #1
+  69              	.LVL5:
+  70              		.loc 1 50 10 view .LVU17
+  71 0012 DBB2     		uxtb	r3, r3
+  72              	.LVL6:
+  73              	.L2:
+  41:Src/ws2812.c  ****     encoding = encoding << 3;
+  74              		.loc 1 41 9 is_stmt 1 view .LVU18
+  75 0014 072B     		cmp	r3, #7
+  76 0016 05D8     		bhi	.L16
+  42:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+  77              		.loc 1 42 5 view .LVU19
+  42:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+  78              		.loc 1 42 14 is_stmt 0 view .LVU20
+  79 0018 D200     		lsls	r2, r2, #3
+  80              	.LVL7:
+  43:Src/ws2812.c  ****       encoding |= 0x6;
+  81              		.loc 1 43 5 is_stmt 1 view .LVU21
+  43:Src/ws2812.c  ****       encoding |= 0x6;
+  82              		.loc 1 43 8 is_stmt 0 view .LVU22
+  83 001a 0C02     		lsls	r4, r1, #8
+  84 001c F5D5     		bpl	.L3
+  44:Src/ws2812.c  ****     }
+  85              		.loc 1 44 7 is_stmt 1 view .LVU23
+  44:Src/ws2812.c  ****     }
+  86              		.loc 1 44 16 is_stmt 0 view .LVU24
+  87 001e 0624     		movs	r4, #6
+  88 0020 2243     		orrs	r2, r4
+  89              	.LVL8:
+  44:Src/ws2812.c  ****     }
+  90              		.loc 1 44 16 view .LVU25
+  91 0022 F4E7     		b	.L4
+  92              	.L16:
+  51:Src/ws2812.c  ****   }    
+  52:Src/ws2812.c  ****   TempBuffer[0] = ((encoding >> 16) & 0xff);
+  93              		.loc 1 52 3 is_stmt 1 view .LVU26
+  94              		.loc 1 52 30 is_stmt 0 view .LVU27
+  95 0024 140C     		lsrs	r4, r2, #16
+  96              		.loc 1 52 17 view .LVU28
+  97 0026 01AB     		add	r3, sp, #4
+  98              	.LVL9:
+  99              		.loc 1 52 17 view .LVU29
+ 100 0028 1C70     		strb	r4, [r3]
+  53:Src/ws2812.c  ****   TempBuffer[1] = ((encoding >> 8)  & 0xff);
+ 101              		.loc 1 53 3 is_stmt 1 view .LVU30
+ 102              		.loc 1 53 30 is_stmt 0 view .LVU31
+ 103 002a 140A     		lsrs	r4, r2, #8
+ 104              		.loc 1 53 17 view .LVU32
+ 105 002c 5C70     		strb	r4, [r3, #1]
+  54:Src/ws2812.c  ****   TempBuffer[2] = (encoding & 0xff);
+ 106              		.loc 1 54 3 is_stmt 1 view .LVU33
+ 107              		.loc 1 54 17 is_stmt 0 view .LVU34
+ 108 002e 9A70     		strb	r2, [r3, #2]
+ARM GAS  /tmp/ccMa26Q3.s 			page 4
+
+
+  55:Src/ws2812.c  ****     
+  56:Src/ws2812.c  ****   // RED byte
+  57:Src/ws2812.c  ****   index = 0;
+ 109              		.loc 1 57 3 is_stmt 1 view .LVU35
+ 110              	.LVL10:
+  58:Src/ws2812.c  ****   encoding = 0;
+ 111              		.loc 1 58 3 view .LVU36
+  59:Src/ws2812.c  ****   while (index < 8){
+ 112              		.loc 1 59 3 view .LVU37
+  57:Src/ws2812.c  ****   encoding = 0;
+ 113              		.loc 1 57 9 is_stmt 0 view .LVU38
+ 114 0030 0023     		movs	r3, #0
+  58:Src/ws2812.c  ****   encoding = 0;
+ 115              		.loc 1 58 12 view .LVU39
+ 116 0032 0022     		movs	r2, #0
+ 117              		.loc 1 59 9 view .LVU40
+ 118 0034 04E0     		b	.L6
+ 119              	.LVL11:
+ 120              	.L7:
+  60:Src/ws2812.c  ****     encoding = encoding << 3;
+  61:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+  62:Src/ws2812.c  ****       encoding |= 0x6;
+  63:Src/ws2812.c  ****     }
+  64:Src/ws2812.c  ****     else{
+  65:Src/ws2812.c  ****       encoding |= 0x4;
+ 121              		.loc 1 65 7 is_stmt 1 view .LVU41
+ 122              		.loc 1 65 16 is_stmt 0 view .LVU42
+ 123 0036 0424     		movs	r4, #4
+ 124 0038 2243     		orrs	r2, r4
+ 125              	.LVL12:
+ 126              	.L8:
+  66:Src/ws2812.c  ****     }
+  67:Src/ws2812.c  ****     GRBColor = GRBColor << 1;
+ 127              		.loc 1 67 5 is_stmt 1 view .LVU43
+ 128              		.loc 1 67 14 is_stmt 0 view .LVU44
+ 129 003a 4900     		lsls	r1, r1, #1
+ 130              	.LVL13:
+  68:Src/ws2812.c  ****     index++; 
+ 131              		.loc 1 68 5 is_stmt 1 view .LVU45
+ 132              		.loc 1 68 10 is_stmt 0 view .LVU46
+ 133 003c 0133     		adds	r3, r3, #1
+ 134              	.LVL14:
+ 135              		.loc 1 68 10 view .LVU47
+ 136 003e DBB2     		uxtb	r3, r3
+ 137              	.LVL15:
+ 138              	.L6:
+  59:Src/ws2812.c  ****     encoding = encoding << 3;
+ 139              		.loc 1 59 9 is_stmt 1 view .LVU48
+ 140 0040 072B     		cmp	r3, #7
+ 141 0042 05D8     		bhi	.L17
+  60:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+ 142              		.loc 1 60 5 view .LVU49
+  60:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+ 143              		.loc 1 60 14 is_stmt 0 view .LVU50
+ 144 0044 D200     		lsls	r2, r2, #3
+ 145              	.LVL16:
+  61:Src/ws2812.c  ****       encoding |= 0x6;
+ARM GAS  /tmp/ccMa26Q3.s 			page 5
+
+
+ 146              		.loc 1 61 5 is_stmt 1 view .LVU51
+  61:Src/ws2812.c  ****       encoding |= 0x6;
+ 147              		.loc 1 61 8 is_stmt 0 view .LVU52
+ 148 0046 0C02     		lsls	r4, r1, #8
+ 149 0048 F5D5     		bpl	.L7
+  62:Src/ws2812.c  ****     }
+ 150              		.loc 1 62 7 is_stmt 1 view .LVU53
+  62:Src/ws2812.c  ****     }
+ 151              		.loc 1 62 16 is_stmt 0 view .LVU54
+ 152 004a 0624     		movs	r4, #6
+ 153 004c 2243     		orrs	r2, r4
+ 154              	.LVL17:
+  62:Src/ws2812.c  ****     }
+ 155              		.loc 1 62 16 view .LVU55
+ 156 004e F4E7     		b	.L8
+ 157              	.L17:
+  69:Src/ws2812.c  ****   }    
+  70:Src/ws2812.c  ****   TempBuffer[3] = ((encoding >> 16) & 0xff);
+ 158              		.loc 1 70 3 is_stmt 1 view .LVU56
+ 159              		.loc 1 70 30 is_stmt 0 view .LVU57
+ 160 0050 140C     		lsrs	r4, r2, #16
+ 161              		.loc 1 70 17 view .LVU58
+ 162 0052 01AB     		add	r3, sp, #4
+ 163              	.LVL18:
+ 164              		.loc 1 70 17 view .LVU59
+ 165 0054 DC70     		strb	r4, [r3, #3]
+  71:Src/ws2812.c  ****   TempBuffer[4] = ((encoding >> 8)  & 0xff);
+ 166              		.loc 1 71 3 is_stmt 1 view .LVU60
+ 167              		.loc 1 71 30 is_stmt 0 view .LVU61
+ 168 0056 140A     		lsrs	r4, r2, #8
+ 169              		.loc 1 71 17 view .LVU62
+ 170 0058 1C71     		strb	r4, [r3, #4]
+  72:Src/ws2812.c  ****   TempBuffer[5] = (encoding & 0xff);
+ 171              		.loc 1 72 3 is_stmt 1 view .LVU63
+ 172              		.loc 1 72 17 is_stmt 0 view .LVU64
+ 173 005a 5A71     		strb	r2, [r3, #5]
+  73:Src/ws2812.c  ****     
+  74:Src/ws2812.c  ****   // BLUE byte
+  75:Src/ws2812.c  ****   index = 0;
+ 174              		.loc 1 75 3 is_stmt 1 view .LVU65
+ 175              	.LVL19:
+  76:Src/ws2812.c  ****   encoding = 0;
+ 176              		.loc 1 76 3 view .LVU66
+  77:Src/ws2812.c  ****   while (index < 8){
+ 177              		.loc 1 77 3 view .LVU67
+  75:Src/ws2812.c  ****   encoding = 0;
+ 178              		.loc 1 75 9 is_stmt 0 view .LVU68
+ 179 005c 0023     		movs	r3, #0
+  76:Src/ws2812.c  ****   encoding = 0;
+ 180              		.loc 1 76 12 view .LVU69
+ 181 005e 0022     		movs	r2, #0
+ 182              		.loc 1 77 9 view .LVU70
+ 183 0060 04E0     		b	.L10
+ 184              	.LVL20:
+ 185              	.L11:
+  78:Src/ws2812.c  ****     encoding = encoding << 3;
+  79:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+ARM GAS  /tmp/ccMa26Q3.s 			page 6
+
+
+  80:Src/ws2812.c  ****       encoding |= 0x6;
+  81:Src/ws2812.c  ****     }
+  82:Src/ws2812.c  ****     else{
+  83:Src/ws2812.c  ****       encoding |= 0x4;
+ 186              		.loc 1 83 7 is_stmt 1 view .LVU71
+ 187              		.loc 1 83 16 is_stmt 0 view .LVU72
+ 188 0062 0424     		movs	r4, #4
+ 189 0064 2243     		orrs	r2, r4
+ 190              	.LVL21:
+ 191              	.L12:
+  84:Src/ws2812.c  ****     }
+  85:Src/ws2812.c  ****     GRBColor = GRBColor << 1;
+ 192              		.loc 1 85 5 is_stmt 1 view .LVU73
+ 193              		.loc 1 85 14 is_stmt 0 view .LVU74
+ 194 0066 4900     		lsls	r1, r1, #1
+ 195              	.LVL22:
+  86:Src/ws2812.c  ****     index++;     
+ 196              		.loc 1 86 5 is_stmt 1 view .LVU75
+ 197              		.loc 1 86 10 is_stmt 0 view .LVU76
+ 198 0068 0133     		adds	r3, r3, #1
+ 199              	.LVL23:
+ 200              		.loc 1 86 10 view .LVU77
+ 201 006a DBB2     		uxtb	r3, r3
+ 202              	.LVL24:
+ 203              	.L10:
+  77:Src/ws2812.c  ****     encoding = encoding << 3;
+ 204              		.loc 1 77 9 is_stmt 1 view .LVU78
+ 205 006c 072B     		cmp	r3, #7
+ 206 006e 05D8     		bhi	.L18
+  78:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+ 207              		.loc 1 78 5 view .LVU79
+  78:Src/ws2812.c  ****     if (GRBColor & (1 << 23)){
+ 208              		.loc 1 78 14 is_stmt 0 view .LVU80
+ 209 0070 D200     		lsls	r2, r2, #3
+ 210              	.LVL25:
+  79:Src/ws2812.c  ****       encoding |= 0x6;
+ 211              		.loc 1 79 5 is_stmt 1 view .LVU81
+  79:Src/ws2812.c  ****       encoding |= 0x6;
+ 212              		.loc 1 79 8 is_stmt 0 view .LVU82
+ 213 0072 0C02     		lsls	r4, r1, #8
+ 214 0074 F5D5     		bpl	.L11
+  80:Src/ws2812.c  ****     }
+ 215              		.loc 1 80 7 is_stmt 1 view .LVU83
+  80:Src/ws2812.c  ****     }
+ 216              		.loc 1 80 16 is_stmt 0 view .LVU84
+ 217 0076 0624     		movs	r4, #6
+ 218 0078 2243     		orrs	r2, r4
+ 219              	.LVL26:
+  80:Src/ws2812.c  ****     }
+ 220              		.loc 1 80 16 view .LVU85
+ 221 007a F4E7     		b	.L12
+ 222              	.L18:
+  87:Src/ws2812.c  ****   }    
+  88:Src/ws2812.c  ****   TempBuffer[6] = ((encoding >> 16) & 0xff);
+ 223              		.loc 1 88 3 is_stmt 1 view .LVU86
+ 224              		.loc 1 88 30 is_stmt 0 view .LVU87
+ 225 007c 110C     		lsrs	r1, r2, #16
+ARM GAS  /tmp/ccMa26Q3.s 			page 7
+
+
+ 226              	.LVL27:
+ 227              		.loc 1 88 17 view .LVU88
+ 228 007e 01AB     		add	r3, sp, #4
+ 229              	.LVL28:
+ 230              		.loc 1 88 17 view .LVU89
+ 231 0080 9971     		strb	r1, [r3, #6]
+  89:Src/ws2812.c  ****   TempBuffer[7] = ((encoding >> 8)  & 0xff);
+ 232              		.loc 1 89 3 is_stmt 1 view .LVU90
+ 233              		.loc 1 89 30 is_stmt 0 view .LVU91
+ 234 0082 110A     		lsrs	r1, r2, #8
+ 235              		.loc 1 89 17 view .LVU92
+ 236 0084 D971     		strb	r1, [r3, #7]
+  90:Src/ws2812.c  ****   TempBuffer[8] = (encoding & 0xff);
+ 237              		.loc 1 90 3 is_stmt 1 view .LVU93
+ 238              		.loc 1 90 17 is_stmt 0 view .LVU94
+ 239 0086 1A72     		strb	r2, [r3, #8]
+  91:Src/ws2812.c  **** 
+  92:Src/ws2812.c  ****   index = 0;
+ 240              		.loc 1 92 3 is_stmt 1 view .LVU95
+ 241              	.LVL29:
+  93:Src/ws2812.c  ****   while(index < 9){
+ 242              		.loc 1 93 3 view .LVU96
+  92:Src/ws2812.c  ****   while(index < 9){
+ 243              		.loc 1 92 9 is_stmt 0 view .LVU97
+ 244 0088 0023     		movs	r3, #0
+ 245              		.loc 1 93 8 view .LVU98
+ 246 008a 08E0     		b	.L14
+ 247              	.LVL30:
+ 248              	.L15:
+  94:Src/ws2812.c  **** 	WS2812_Buffer[index + PixelNumber * 9] = TempBuffer[index];
+ 249              		.loc 1 94 2 is_stmt 1 view .LVU99
+ 250              		.loc 1 94 36 is_stmt 0 view .LVU100
+ 251 008c C200     		lsls	r2, r0, #3
+ 252 008e 1218     		adds	r2, r2, r0
+ 253              		.loc 1 94 22 view .LVU101
+ 254 0090 9A18     		adds	r2, r3, r2
+ 255              		.loc 1 94 53 view .LVU102
+ 256 0092 01A9     		add	r1, sp, #4
+ 257 0094 CC5C     		ldrb	r4, [r1, r3]
+ 258              		.loc 1 94 41 view .LVU103
+ 259 0096 0449     		ldr	r1, .L19
+ 260 0098 8C54     		strb	r4, [r1, r2]
+  95:Src/ws2812.c  **** 	index++;
+ 261              		.loc 1 95 2 is_stmt 1 view .LVU104
+ 262              		.loc 1 95 7 is_stmt 0 view .LVU105
+ 263 009a 0133     		adds	r3, r3, #1
+ 264              	.LVL31:
+ 265              		.loc 1 95 7 view .LVU106
+ 266 009c DBB2     		uxtb	r3, r3
+ 267              	.LVL32:
+ 268              	.L14:
+  93:Src/ws2812.c  **** 	WS2812_Buffer[index + PixelNumber * 9] = TempBuffer[index];
+ 269              		.loc 1 93 8 is_stmt 1 view .LVU107
+ 270 009e 082B     		cmp	r3, #8
+ 271 00a0 F4D9     		bls	.L15
+  96:Src/ws2812.c  ****   }      
+  97:Src/ws2812.c  **** }
+ARM GAS  /tmp/ccMa26Q3.s 			page 8
+
+
+ 272              		.loc 1 97 1 is_stmt 0 view .LVU108
+ 273 00a2 04B0     		add	sp, sp, #16
+ 274              		@ sp needed
+ 275 00a4 10BD     		pop	{r4, pc}
+ 276              	.L20:
+ 277 00a6 C046     		.align	2
+ 278              	.L19:
+ 279 00a8 00000000 		.word	.LANCHOR0
+ 280              		.cfi_endproc
+ 281              	.LFE40:
+ 283              		.section	.text.WS2812_Color,"ax",%progbits
+ 284              		.align	1
+ 285              		.global	WS2812_Color
+ 286              		.syntax unified
+ 287              		.code	16
+ 288              		.thumb_func
+ 289              		.fpu softvfp
+ 291              	WS2812_Color:
+ 292              	.LVL33:
+ 293              	.LFB41:
+  98:Src/ws2812.c  **** 
+  99:Src/ws2812.c  **** 
+ 100:Src/ws2812.c  **** /**
+ 101:Src/ws2812.c  ****   * @brief  Convert RGB color format to WS2812 GRB  
+ 102:Src/ws2812.c  ****   */
+ 103:Src/ws2812.c  **** uint32_t WS2812_Color(uint8_t red, uint8_t green, uint8_t blue){
+ 294              		.loc 1 103 64 is_stmt 1 view -0
+ 295              		.cfi_startproc
+ 296              		@ args = 0, pretend = 0, frame = 0
+ 297              		@ frame_needed = 0, uses_anonymous_args = 0
+ 298              		@ link register save eliminated.
+ 104:Src/ws2812.c  ****   return green << 16 | red << 8 | blue;
+ 299              		.loc 1 104 3 view .LVU110
+ 300              		.loc 1 104 16 is_stmt 0 view .LVU111
+ 301 0000 0904     		lsls	r1, r1, #16
+ 302              	.LVL34:
+ 303              		.loc 1 104 28 view .LVU112
+ 304 0002 0002     		lsls	r0, r0, #8
+ 305              	.LVL35:
+ 306              		.loc 1 104 22 view .LVU113
+ 307 0004 0843     		orrs	r0, r1
+ 308              		.loc 1 104 33 view .LVU114
+ 309 0006 1043     		orrs	r0, r2
+ 105:Src/ws2812.c  **** }
+ 310              		.loc 1 105 1 view .LVU115
+ 311              		@ sp needed
+ 312 0008 7047     		bx	lr
+ 313              		.cfi_endproc
+ 314              	.LFE41:
+ 316              		.section	.text.WS2812_SetPixelColor,"ax",%progbits
+ 317              		.align	1
+ 318              		.global	WS2812_SetPixelColor
+ 319              		.syntax unified
+ 320              		.code	16
+ 321              		.thumb_func
+ 322              		.fpu softvfp
+ 324              	WS2812_SetPixelColor:
+ARM GAS  /tmp/ccMa26Q3.s 			page 9
+
+
+ 325              	.LVL36:
+ 326              	.LFB42:
+ 106:Src/ws2812.c  **** 
+ 107:Src/ws2812.c  **** 
+ 108:Src/ws2812.c  **** /**
+ 109:Src/ws2812.c  ****   * @brief  Sets the desired color to a WS2812 pixel
+ 110:Src/ws2812.c  ****   * 
+ 111:Src/ws2812.c  ****   * PixelNumber is the number of WS2812 in a row beginning at 0.
+ 112:Src/ws2812.c  ****   * 
+ 113:Src/ws2812.c  ****   * red, green, blue are between 0 and 255 (1 byte each) that gives 
+ 114:Src/ws2812.c  ****   * 16777216 colors in total.
+ 115:Src/ws2812.c  ****   */
+ 116:Src/ws2812.c  **** void WS2812_SetPixelColor(uint8_t PixelNumber, uint8_t red, uint8_t green, uint8_t blue){
+ 327              		.loc 1 116 89 is_stmt 1 view -0
+ 328              		.cfi_startproc
+ 329              		@ args = 0, pretend = 0, frame = 0
+ 330              		@ frame_needed = 0, uses_anonymous_args = 0
+ 331              		.loc 1 116 89 is_stmt 0 view .LVU117
+ 332 0000 10B5     		push	{r4, lr}
+ 333              	.LCFI2:
+ 334              		.cfi_def_cfa_offset 8
+ 335              		.cfi_offset 4, -8
+ 336              		.cfi_offset 14, -4
+ 337 0002 0400     		movs	r4, r0
+ 338 0004 0800     		movs	r0, r1
+ 339              	.LVL37:
+ 340              		.loc 1 116 89 view .LVU118
+ 341 0006 1100     		movs	r1, r2
+ 342              	.LVL38:
+ 343              		.loc 1 116 89 view .LVU119
+ 344 0008 1A00     		movs	r2, r3
+ 345              	.LVL39:
+ 117:Src/ws2812.c  ****   WS2812_Write(PixelNumber, WS2812_Color(red, green, blue));	
+ 346              		.loc 1 117 3 is_stmt 1 view .LVU120
+ 347 000a FFF7FEFF 		bl	WS2812_Color
+ 348              	.LVL40:
+ 349              		.loc 1 117 3 is_stmt 0 view .LVU121
+ 350 000e 0100     		movs	r1, r0
+ 351 0010 2000     		movs	r0, r4
+ 352 0012 FFF7FEFF 		bl	WS2812_Write
+ 353              	.LVL41:
+ 118:Src/ws2812.c  **** }
+ 354              		.loc 1 118 1 view .LVU122
+ 355              		@ sp needed
+ 356 0016 10BD     		pop	{r4, pc}
+ 357              		.cfi_endproc
+ 358              	.LFE42:
+ 360              		.section	.text.WS2812_Update,"ax",%progbits
+ 361              		.align	1
+ 362              		.global	WS2812_Update
+ 363              		.syntax unified
+ 364              		.code	16
+ 365              		.thumb_func
+ 366              		.fpu softvfp
+ 368              	WS2812_Update:
+ 369              	.LFB43:
+ 119:Src/ws2812.c  **** 
+ARM GAS  /tmp/ccMa26Q3.s 			page 10
+
+
+ 120:Src/ws2812.c  **** 
+ 121:Src/ws2812.c  **** /**
+ 122:Src/ws2812.c  ****   * @brief  Send data frame to WS2812 LEDs.
+ 123:Src/ws2812.c  ****   */
+ 124:Src/ws2812.c  **** void WS2812_Update(void){
+ 370              		.loc 1 124 25 is_stmt 1 view -0
+ 371              		.cfi_startproc
+ 372              		@ args = 0, pretend = 0, frame = 0
+ 373              		@ frame_needed = 0, uses_anonymous_args = 0
+ 374 0000 70B5     		push	{r4, r5, r6, lr}
+ 375              	.LCFI3:
+ 376              		.cfi_def_cfa_offset 16
+ 377              		.cfi_offset 4, -16
+ 378              		.cfi_offset 5, -12
+ 379              		.cfi_offset 6, -8
+ 380              		.cfi_offset 14, -4
+ 125:Src/ws2812.c  ****   HAL_SPI_Transmit(&hspi1, WS2812_Buffer, sizeof(WS2812_Buffer), HAL_MAX_DELAY);
+ 381              		.loc 1 125 3 view .LVU124
+ 382 0002 0125     		movs	r5, #1
+ 383 0004 6D42     		rsbs	r5, r5, #0
+ 384 0006 074C     		ldr	r4, .L24
+ 385 0008 2B00     		movs	r3, r5
+ 386 000a 6C22     		movs	r2, #108
+ 387 000c 0649     		ldr	r1, .L24+4
+ 388 000e 2000     		movs	r0, r4
+ 389 0010 FFF7FEFF 		bl	HAL_SPI_Transmit
+ 390              	.LVL42:
+ 126:Src/ws2812.c  ****   HAL_SPI_Transmit(&hspi1, WS2812_Reset, sizeof(WS2812_Reset), HAL_MAX_DELAY);
+ 391              		.loc 1 126 3 view .LVU125
+ 392 0014 2B00     		movs	r3, r5
+ 393 0016 0222     		movs	r2, #2
+ 394 0018 0449     		ldr	r1, .L24+8
+ 395 001a 2000     		movs	r0, r4
+ 396 001c FFF7FEFF 		bl	HAL_SPI_Transmit
+ 397              	.LVL43:
+ 127:Src/ws2812.c  **** }
+ 398              		.loc 1 127 1 is_stmt 0 view .LVU126
+ 399              		@ sp needed
+ 400 0020 70BD     		pop	{r4, r5, r6, pc}
+ 401              	.L25:
+ 402 0022 C046     		.align	2
+ 403              	.L24:
+ 404 0024 00000000 		.word	hspi1
+ 405 0028 00000000 		.word	.LANCHOR0
+ 406 002c 00000000 		.word	.LANCHOR1
+ 407              		.cfi_endproc
+ 408              	.LFE43:
+ 410              		.section	.text.WS2812_Test,"ax",%progbits
+ 411              		.align	1
+ 412              		.global	WS2812_Test
+ 413              		.syntax unified
+ 414              		.code	16
+ 415              		.thumb_func
+ 416              		.fpu softvfp
+ 418              	WS2812_Test:
+ 419              	.LFB44:
+ 128:Src/ws2812.c  **** 
+ARM GAS  /tmp/ccMa26Q3.s 			page 11
+
+
+ 129:Src/ws2812.c  **** 
+ 130:Src/ws2812.c  **** /**
+ 131:Src/ws2812.c  ****   * @brief  Test WS2812 LEDs. Sets all leds red then green, blue and white.
+ 132:Src/ws2812.c  ****   */
+ 133:Src/ws2812.c  **** void WS2812_Test(void){
+ 420              		.loc 1 133 23 is_stmt 1 view -0
+ 421              		.cfi_startproc
+ 422              		@ args = 0, pretend = 0, frame = 0
+ 423              		@ frame_needed = 0, uses_anonymous_args = 0
+ 424 0000 10B5     		push	{r4, lr}
+ 425              	.LCFI4:
+ 426              		.cfi_def_cfa_offset 8
+ 427              		.cfi_offset 4, -8
+ 428              		.cfi_offset 14, -4
+ 134:Src/ws2812.c  ****   // Set all pixels red
+ 135:Src/ws2812.c  ****   WS2812_SetPixelColor(0,255,0,0);
+ 429              		.loc 1 135 3 view .LVU128
+ 430 0002 0023     		movs	r3, #0
+ 431 0004 0022     		movs	r2, #0
+ 432 0006 FF21     		movs	r1, #255
+ 433 0008 0020     		movs	r0, #0
+ 434 000a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 435              	.LVL44:
+ 136:Src/ws2812.c  ****   WS2812_SetPixelColor(1,255,0,0);
+ 436              		.loc 1 136 3 view .LVU129
+ 437 000e 0023     		movs	r3, #0
+ 438 0010 0022     		movs	r2, #0
+ 439 0012 FF21     		movs	r1, #255
+ 440 0014 0120     		movs	r0, #1
+ 441 0016 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 442              	.LVL45:
+ 137:Src/ws2812.c  ****   WS2812_SetPixelColor(2,255,0,0);
+ 443              		.loc 1 137 3 view .LVU130
+ 444 001a 0023     		movs	r3, #0
+ 445 001c 0022     		movs	r2, #0
+ 446 001e FF21     		movs	r1, #255
+ 447 0020 0220     		movs	r0, #2
+ 448 0022 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 449              	.LVL46:
+ 138:Src/ws2812.c  ****   WS2812_SetPixelColor(3,255,0,0);
+ 450              		.loc 1 138 3 view .LVU131
+ 451 0026 0023     		movs	r3, #0
+ 452 0028 0022     		movs	r2, #0
+ 453 002a FF21     		movs	r1, #255
+ 454 002c 0320     		movs	r0, #3
+ 455 002e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 456              	.LVL47:
+ 139:Src/ws2812.c  ****   WS2812_SetPixelColor(4,255,0,0);
+ 457              		.loc 1 139 3 view .LVU132
+ 458 0032 0023     		movs	r3, #0
+ 459 0034 0022     		movs	r2, #0
+ 460 0036 FF21     		movs	r1, #255
+ 461 0038 0420     		movs	r0, #4
+ 462 003a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 463              	.LVL48:
+ 140:Src/ws2812.c  ****   WS2812_SetPixelColor(5,255,0,0);
+ 464              		.loc 1 140 3 view .LVU133
+ARM GAS  /tmp/ccMa26Q3.s 			page 12
+
+
+ 465 003e 0023     		movs	r3, #0
+ 466 0040 0022     		movs	r2, #0
+ 467 0042 FF21     		movs	r1, #255
+ 468 0044 0520     		movs	r0, #5
+ 469 0046 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 470              	.LVL49:
+ 141:Src/ws2812.c  ****   WS2812_SetPixelColor(6,255,0,0);
+ 471              		.loc 1 141 3 view .LVU134
+ 472 004a 0023     		movs	r3, #0
+ 473 004c 0022     		movs	r2, #0
+ 474 004e FF21     		movs	r1, #255
+ 475 0050 0620     		movs	r0, #6
+ 476 0052 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 477              	.LVL50:
+ 142:Src/ws2812.c  ****   WS2812_SetPixelColor(7,255,0,0);     
+ 478              		.loc 1 142 3 view .LVU135
+ 479 0056 0023     		movs	r3, #0
+ 480 0058 0022     		movs	r2, #0
+ 481 005a FF21     		movs	r1, #255
+ 482 005c 0720     		movs	r0, #7
+ 483 005e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 484              	.LVL51:
+ 143:Src/ws2812.c  ****   WS2812_SetPixelColor(8,255,0,0);
+ 485              		.loc 1 143 3 view .LVU136
+ 486 0062 0023     		movs	r3, #0
+ 487 0064 0022     		movs	r2, #0
+ 488 0066 FF21     		movs	r1, #255
+ 489 0068 0820     		movs	r0, #8
+ 490 006a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 491              	.LVL52:
+ 144:Src/ws2812.c  ****   WS2812_SetPixelColor(9,255,0,0);
+ 492              		.loc 1 144 3 view .LVU137
+ 493 006e 0023     		movs	r3, #0
+ 494 0070 0022     		movs	r2, #0
+ 495 0072 FF21     		movs	r1, #255
+ 496 0074 0920     		movs	r0, #9
+ 497 0076 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 498              	.LVL53:
+ 145:Src/ws2812.c  ****   WS2812_SetPixelColor(10,255,0,0);
+ 499              		.loc 1 145 3 view .LVU138
+ 500 007a 0023     		movs	r3, #0
+ 501 007c 0022     		movs	r2, #0
+ 502 007e FF21     		movs	r1, #255
+ 503 0080 0A20     		movs	r0, #10
+ 504 0082 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 505              	.LVL54:
+ 146:Src/ws2812.c  ****   WS2812_SetPixelColor(11,255,0,0);
+ 506              		.loc 1 146 3 view .LVU139
+ 507 0086 0023     		movs	r3, #0
+ 508 0088 0022     		movs	r2, #0
+ 509 008a FF21     		movs	r1, #255
+ 510 008c 0B20     		movs	r0, #11
+ 511 008e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 512              	.LVL55:
+ 147:Src/ws2812.c  ****   WS2812_Update();
+ 513              		.loc 1 147 3 view .LVU140
+ 514 0092 FFF7FEFF 		bl	WS2812_Update
+ARM GAS  /tmp/ccMa26Q3.s 			page 13
+
+
+ 515              	.LVL56:
+ 148:Src/ws2812.c  ****   HAL_Delay(500);
+ 516              		.loc 1 148 3 view .LVU141
+ 517 0096 FA24     		movs	r4, #250
+ 518 0098 6400     		lsls	r4, r4, #1
+ 519 009a 2000     		movs	r0, r4
+ 520 009c FFF7FEFF 		bl	HAL_Delay
+ 521              	.LVL57:
+ 149:Src/ws2812.c  **** 
+ 150:Src/ws2812.c  ****   // Set all pixels green
+ 151:Src/ws2812.c  ****   WS2812_SetPixelColor(0,0,255,0);
+ 522              		.loc 1 151 3 view .LVU142
+ 523 00a0 0023     		movs	r3, #0
+ 524 00a2 FF22     		movs	r2, #255
+ 525 00a4 0021     		movs	r1, #0
+ 526 00a6 0020     		movs	r0, #0
+ 527 00a8 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 528              	.LVL58:
+ 152:Src/ws2812.c  ****   WS2812_SetPixelColor(1,0,255,0);
+ 529              		.loc 1 152 3 view .LVU143
+ 530 00ac 0023     		movs	r3, #0
+ 531 00ae FF22     		movs	r2, #255
+ 532 00b0 0021     		movs	r1, #0
+ 533 00b2 0120     		movs	r0, #1
+ 534 00b4 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 535              	.LVL59:
+ 153:Src/ws2812.c  ****   WS2812_SetPixelColor(2,0,255,0);
+ 536              		.loc 1 153 3 view .LVU144
+ 537 00b8 0023     		movs	r3, #0
+ 538 00ba FF22     		movs	r2, #255
+ 539 00bc 0021     		movs	r1, #0
+ 540 00be 0220     		movs	r0, #2
+ 541 00c0 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 542              	.LVL60:
+ 154:Src/ws2812.c  ****   WS2812_SetPixelColor(3,0,255,0);
+ 543              		.loc 1 154 3 view .LVU145
+ 544 00c4 0023     		movs	r3, #0
+ 545 00c6 FF22     		movs	r2, #255
+ 546 00c8 0021     		movs	r1, #0
+ 547 00ca 0320     		movs	r0, #3
+ 548 00cc FFF7FEFF 		bl	WS2812_SetPixelColor
+ 549              	.LVL61:
+ 155:Src/ws2812.c  ****   WS2812_SetPixelColor(4,0,255,0);
+ 550              		.loc 1 155 3 view .LVU146
+ 551 00d0 0023     		movs	r3, #0
+ 552 00d2 FF22     		movs	r2, #255
+ 553 00d4 0021     		movs	r1, #0
+ 554 00d6 0420     		movs	r0, #4
+ 555 00d8 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 556              	.LVL62:
+ 156:Src/ws2812.c  ****   WS2812_SetPixelColor(5,0,255,0);
+ 557              		.loc 1 156 3 view .LVU147
+ 558 00dc 0023     		movs	r3, #0
+ 559 00de FF22     		movs	r2, #255
+ 560 00e0 0021     		movs	r1, #0
+ 561 00e2 0520     		movs	r0, #5
+ 562 00e4 FFF7FEFF 		bl	WS2812_SetPixelColor
+ARM GAS  /tmp/ccMa26Q3.s 			page 14
+
+
+ 563              	.LVL63:
+ 157:Src/ws2812.c  ****   WS2812_SetPixelColor(6,0,255,0);
+ 564              		.loc 1 157 3 view .LVU148
+ 565 00e8 0023     		movs	r3, #0
+ 566 00ea FF22     		movs	r2, #255
+ 567 00ec 0021     		movs	r1, #0
+ 568 00ee 0620     		movs	r0, #6
+ 569 00f0 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 570              	.LVL64:
+ 158:Src/ws2812.c  ****   WS2812_SetPixelColor(7,0,255,0);     
+ 571              		.loc 1 158 3 view .LVU149
+ 572 00f4 0023     		movs	r3, #0
+ 573 00f6 FF22     		movs	r2, #255
+ 574 00f8 0021     		movs	r1, #0
+ 575 00fa 0720     		movs	r0, #7
+ 576 00fc FFF7FEFF 		bl	WS2812_SetPixelColor
+ 577              	.LVL65:
+ 159:Src/ws2812.c  ****   WS2812_SetPixelColor(8,0,255,0);
+ 578              		.loc 1 159 3 view .LVU150
+ 579 0100 0023     		movs	r3, #0
+ 580 0102 FF22     		movs	r2, #255
+ 581 0104 0021     		movs	r1, #0
+ 582 0106 0820     		movs	r0, #8
+ 583 0108 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 584              	.LVL66:
+ 160:Src/ws2812.c  ****   WS2812_SetPixelColor(9,0,255,0);
+ 585              		.loc 1 160 3 view .LVU151
+ 586 010c 0023     		movs	r3, #0
+ 587 010e FF22     		movs	r2, #255
+ 588 0110 0021     		movs	r1, #0
+ 589 0112 0920     		movs	r0, #9
+ 590 0114 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 591              	.LVL67:
+ 161:Src/ws2812.c  ****   WS2812_SetPixelColor(10,0,255,0);
+ 592              		.loc 1 161 3 view .LVU152
+ 593 0118 0023     		movs	r3, #0
+ 594 011a FF22     		movs	r2, #255
+ 595 011c 0021     		movs	r1, #0
+ 596 011e 0A20     		movs	r0, #10
+ 597 0120 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 598              	.LVL68:
+ 162:Src/ws2812.c  ****   WS2812_SetPixelColor(11,0,255,0);
+ 599              		.loc 1 162 3 view .LVU153
+ 600 0124 0023     		movs	r3, #0
+ 601 0126 FF22     		movs	r2, #255
+ 602 0128 0021     		movs	r1, #0
+ 603 012a 0B20     		movs	r0, #11
+ 604 012c FFF7FEFF 		bl	WS2812_SetPixelColor
+ 605              	.LVL69:
+ 163:Src/ws2812.c  ****   WS2812_Update();
+ 606              		.loc 1 163 3 view .LVU154
+ 607 0130 FFF7FEFF 		bl	WS2812_Update
+ 608              	.LVL70:
+ 164:Src/ws2812.c  ****   HAL_Delay(500);
+ 609              		.loc 1 164 3 view .LVU155
+ 610 0134 2000     		movs	r0, r4
+ 611 0136 FFF7FEFF 		bl	HAL_Delay
+ARM GAS  /tmp/ccMa26Q3.s 			page 15
+
+
+ 612              	.LVL71:
+ 165:Src/ws2812.c  **** 
+ 166:Src/ws2812.c  ****   // Set all pixels blue
+ 167:Src/ws2812.c  ****   WS2812_SetPixelColor(0,0,0,255);
+ 613              		.loc 1 167 3 view .LVU156
+ 614 013a FF23     		movs	r3, #255
+ 615 013c 0022     		movs	r2, #0
+ 616 013e 0021     		movs	r1, #0
+ 617 0140 0020     		movs	r0, #0
+ 618 0142 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 619              	.LVL72:
+ 168:Src/ws2812.c  ****   WS2812_SetPixelColor(1,0,0,255);
+ 620              		.loc 1 168 3 view .LVU157
+ 621 0146 FF23     		movs	r3, #255
+ 622 0148 0022     		movs	r2, #0
+ 623 014a 0021     		movs	r1, #0
+ 624 014c 0120     		movs	r0, #1
+ 625 014e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 626              	.LVL73:
+ 169:Src/ws2812.c  ****   WS2812_SetPixelColor(2,0,0,255);
+ 627              		.loc 1 169 3 view .LVU158
+ 628 0152 FF23     		movs	r3, #255
+ 629 0154 0022     		movs	r2, #0
+ 630 0156 0021     		movs	r1, #0
+ 631 0158 0220     		movs	r0, #2
+ 632 015a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 633              	.LVL74:
+ 170:Src/ws2812.c  ****   WS2812_SetPixelColor(3,0,0,255);
+ 634              		.loc 1 170 3 view .LVU159
+ 635 015e FF23     		movs	r3, #255
+ 636 0160 0022     		movs	r2, #0
+ 637 0162 0021     		movs	r1, #0
+ 638 0164 0320     		movs	r0, #3
+ 639 0166 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 640              	.LVL75:
+ 171:Src/ws2812.c  ****   WS2812_SetPixelColor(4,0,0,255);
+ 641              		.loc 1 171 3 view .LVU160
+ 642 016a FF23     		movs	r3, #255
+ 643 016c 0022     		movs	r2, #0
+ 644 016e 0021     		movs	r1, #0
+ 645 0170 0420     		movs	r0, #4
+ 646 0172 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 647              	.LVL76:
+ 172:Src/ws2812.c  ****   WS2812_SetPixelColor(5,0,0,255);
+ 648              		.loc 1 172 3 view .LVU161
+ 649 0176 FF23     		movs	r3, #255
+ 650 0178 0022     		movs	r2, #0
+ 651 017a 0021     		movs	r1, #0
+ 652 017c 0520     		movs	r0, #5
+ 653 017e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 654              	.LVL77:
+ 173:Src/ws2812.c  ****   WS2812_SetPixelColor(6,0,0,255);
+ 655              		.loc 1 173 3 view .LVU162
+ 656 0182 FF23     		movs	r3, #255
+ 657 0184 0022     		movs	r2, #0
+ 658 0186 0021     		movs	r1, #0
+ 659 0188 0620     		movs	r0, #6
+ARM GAS  /tmp/ccMa26Q3.s 			page 16
+
+
+ 660 018a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 661              	.LVL78:
+ 174:Src/ws2812.c  ****   WS2812_SetPixelColor(7,0,0,255);     
+ 662              		.loc 1 174 3 view .LVU163
+ 663 018e FF23     		movs	r3, #255
+ 664 0190 0022     		movs	r2, #0
+ 665 0192 0021     		movs	r1, #0
+ 666 0194 0720     		movs	r0, #7
+ 667 0196 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 668              	.LVL79:
+ 175:Src/ws2812.c  ****   WS2812_SetPixelColor(8,0,0,255);
+ 669              		.loc 1 175 3 view .LVU164
+ 670 019a FF23     		movs	r3, #255
+ 671 019c 0022     		movs	r2, #0
+ 672 019e 0021     		movs	r1, #0
+ 673 01a0 0820     		movs	r0, #8
+ 674 01a2 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 675              	.LVL80:
+ 176:Src/ws2812.c  ****   WS2812_SetPixelColor(9,0,0,255);
+ 676              		.loc 1 176 3 view .LVU165
+ 677 01a6 FF23     		movs	r3, #255
+ 678 01a8 0022     		movs	r2, #0
+ 679 01aa 0021     		movs	r1, #0
+ 680 01ac 0920     		movs	r0, #9
+ 681 01ae FFF7FEFF 		bl	WS2812_SetPixelColor
+ 682              	.LVL81:
+ 177:Src/ws2812.c  ****   WS2812_SetPixelColor(10,0,0,255);
+ 683              		.loc 1 177 3 view .LVU166
+ 684 01b2 FF23     		movs	r3, #255
+ 685 01b4 0022     		movs	r2, #0
+ 686 01b6 0021     		movs	r1, #0
+ 687 01b8 0A20     		movs	r0, #10
+ 688 01ba FFF7FEFF 		bl	WS2812_SetPixelColor
+ 689              	.LVL82:
+ 178:Src/ws2812.c  ****   WS2812_SetPixelColor(11,0,0,255); 
+ 690              		.loc 1 178 3 view .LVU167
+ 691 01be FF23     		movs	r3, #255
+ 692 01c0 0022     		movs	r2, #0
+ 693 01c2 0021     		movs	r1, #0
+ 694 01c4 0B20     		movs	r0, #11
+ 695 01c6 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 696              	.LVL83:
+ 179:Src/ws2812.c  ****   WS2812_Update();
+ 697              		.loc 1 179 3 view .LVU168
+ 698 01ca FFF7FEFF 		bl	WS2812_Update
+ 699              	.LVL84:
+ 180:Src/ws2812.c  ****   HAL_Delay(500);
+ 700              		.loc 1 180 3 view .LVU169
+ 701 01ce 2000     		movs	r0, r4
+ 702 01d0 FFF7FEFF 		bl	HAL_Delay
+ 703              	.LVL85:
+ 181:Src/ws2812.c  **** 
+ 182:Src/ws2812.c  ****   // Set all pixels white
+ 183:Src/ws2812.c  ****   WS2812_SetPixelColor(0,255,255,255);
+ 704              		.loc 1 183 3 view .LVU170
+ 705 01d4 FF23     		movs	r3, #255
+ 706 01d6 FF22     		movs	r2, #255
+ARM GAS  /tmp/ccMa26Q3.s 			page 17
+
+
+ 707 01d8 FF21     		movs	r1, #255
+ 708 01da 0020     		movs	r0, #0
+ 709 01dc FFF7FEFF 		bl	WS2812_SetPixelColor
+ 710              	.LVL86:
+ 184:Src/ws2812.c  ****   WS2812_SetPixelColor(1,255,255,255);
+ 711              		.loc 1 184 3 view .LVU171
+ 712 01e0 FF23     		movs	r3, #255
+ 713 01e2 FF22     		movs	r2, #255
+ 714 01e4 FF21     		movs	r1, #255
+ 715 01e6 0120     		movs	r0, #1
+ 716 01e8 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 717              	.LVL87:
+ 185:Src/ws2812.c  ****   WS2812_SetPixelColor(2,255,255,255);
+ 718              		.loc 1 185 3 view .LVU172
+ 719 01ec FF23     		movs	r3, #255
+ 720 01ee FF22     		movs	r2, #255
+ 721 01f0 FF21     		movs	r1, #255
+ 722 01f2 0220     		movs	r0, #2
+ 723 01f4 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 724              	.LVL88:
+ 186:Src/ws2812.c  ****   WS2812_SetPixelColor(3,255,255,255);
+ 725              		.loc 1 186 3 view .LVU173
+ 726 01f8 FF23     		movs	r3, #255
+ 727 01fa FF22     		movs	r2, #255
+ 728 01fc FF21     		movs	r1, #255
+ 729 01fe 0320     		movs	r0, #3
+ 730 0200 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 731              	.LVL89:
+ 187:Src/ws2812.c  ****   WS2812_SetPixelColor(4,255,255,255);
+ 732              		.loc 1 187 3 view .LVU174
+ 733 0204 FF23     		movs	r3, #255
+ 734 0206 FF22     		movs	r2, #255
+ 735 0208 FF21     		movs	r1, #255
+ 736 020a 0420     		movs	r0, #4
+ 737 020c FFF7FEFF 		bl	WS2812_SetPixelColor
+ 738              	.LVL90:
+ 188:Src/ws2812.c  ****   WS2812_SetPixelColor(5,255,255,255);
+ 739              		.loc 1 188 3 view .LVU175
+ 740 0210 FF23     		movs	r3, #255
+ 741 0212 FF22     		movs	r2, #255
+ 742 0214 FF21     		movs	r1, #255
+ 743 0216 0520     		movs	r0, #5
+ 744 0218 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 745              	.LVL91:
+ 189:Src/ws2812.c  ****   WS2812_SetPixelColor(6,255,255,255);
+ 746              		.loc 1 189 3 view .LVU176
+ 747 021c FF23     		movs	r3, #255
+ 748 021e FF22     		movs	r2, #255
+ 749 0220 FF21     		movs	r1, #255
+ 750 0222 0620     		movs	r0, #6
+ 751 0224 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 752              	.LVL92:
+ 190:Src/ws2812.c  ****   WS2812_SetPixelColor(7,255,255,255);
+ 753              		.loc 1 190 3 view .LVU177
+ 754 0228 FF23     		movs	r3, #255
+ 755 022a FF22     		movs	r2, #255
+ 756 022c FF21     		movs	r1, #255
+ARM GAS  /tmp/ccMa26Q3.s 			page 18
+
+
+ 757 022e 0720     		movs	r0, #7
+ 758 0230 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 759              	.LVL93:
+ 191:Src/ws2812.c  ****   WS2812_SetPixelColor(8,255,255,255);       
+ 760              		.loc 1 191 3 view .LVU178
+ 761 0234 FF23     		movs	r3, #255
+ 762 0236 FF22     		movs	r2, #255
+ 763 0238 FF21     		movs	r1, #255
+ 764 023a 0820     		movs	r0, #8
+ 765 023c FFF7FEFF 		bl	WS2812_SetPixelColor
+ 766              	.LVL94:
+ 192:Src/ws2812.c  ****   WS2812_SetPixelColor(9,255,255,255);
+ 767              		.loc 1 192 3 view .LVU179
+ 768 0240 FF23     		movs	r3, #255
+ 769 0242 FF22     		movs	r2, #255
+ 770 0244 FF21     		movs	r1, #255
+ 771 0246 0920     		movs	r0, #9
+ 772 0248 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 773              	.LVL95:
+ 193:Src/ws2812.c  ****   WS2812_SetPixelColor(10,255,255,255);
+ 774              		.loc 1 193 3 view .LVU180
+ 775 024c FF23     		movs	r3, #255
+ 776 024e FF22     		movs	r2, #255
+ 777 0250 FF21     		movs	r1, #255
+ 778 0252 0A20     		movs	r0, #10
+ 779 0254 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 780              	.LVL96:
+ 194:Src/ws2812.c  ****   WS2812_SetPixelColor(11,255,255,255);
+ 781              		.loc 1 194 3 view .LVU181
+ 782 0258 FF23     		movs	r3, #255
+ 783 025a FF22     		movs	r2, #255
+ 784 025c FF21     		movs	r1, #255
+ 785 025e 0B20     		movs	r0, #11
+ 786 0260 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 787              	.LVL97:
+ 195:Src/ws2812.c  ****   WS2812_Update();
+ 788              		.loc 1 195 3 view .LVU182
+ 789 0264 FFF7FEFF 		bl	WS2812_Update
+ 790              	.LVL98:
+ 196:Src/ws2812.c  ****   HAL_Delay(500);
+ 791              		.loc 1 196 3 view .LVU183
+ 792 0268 2000     		movs	r0, r4
+ 793 026a FFF7FEFF 		bl	HAL_Delay
+ 794              	.LVL99:
+ 197:Src/ws2812.c  **** }
+ 795              		.loc 1 197 1 is_stmt 0 view .LVU184
+ 796              		@ sp needed
+ 797 026e 10BD     		pop	{r4, pc}
+ 798              		.cfi_endproc
+ 799              	.LFE44:
+ 801              		.section	.text.WS2812_TARDISEffect,"ax",%progbits
+ 802              		.align	1
+ 803              		.global	WS2812_TARDISEffect
+ 804              		.syntax unified
+ 805              		.code	16
+ 806              		.thumb_func
+ 807              		.fpu softvfp
+ARM GAS  /tmp/ccMa26Q3.s 			page 19
+
+
+ 809              	WS2812_TARDISEffect:
+ 810              	.LFB45:
+ 198:Src/ws2812.c  **** 
+ 199:Src/ws2812.c  **** /**
+ 200:Src/ws2812.c  ****   * @brief  Dr who TARDIS lamp effect. gradually turns leds on and off.
+ 201:Src/ws2812.c  ****   */
+ 202:Src/ws2812.c  **** void WS2812_TARDISEffect(){
+ 811              		.loc 1 202 27 is_stmt 1 view -0
+ 812              		.cfi_startproc
+ 813              		@ args = 0, pretend = 0, frame = 0
+ 814              		@ frame_needed = 0, uses_anonymous_args = 0
+ 815 0000 70B5     		push	{r4, r5, r6, lr}
+ 816              	.LCFI5:
+ 817              		.cfi_def_cfa_offset 16
+ 818              		.cfi_offset 4, -16
+ 819              		.cfi_offset 5, -12
+ 820              		.cfi_offset 6, -8
+ 821              		.cfi_offset 14, -4
+ 203:Src/ws2812.c  ****   for(uint8_t i = 255; i >= 1; i = i / 2){
+ 822              		.loc 1 203 3 view .LVU186
+ 823              	.LBB2:
+ 824              		.loc 1 203 7 view .LVU187
+ 825              	.LVL100:
+ 826              		.loc 1 203 15 is_stmt 0 view .LVU188
+ 827 0002 FF24     		movs	r4, #255
+ 828              		.loc 1 203 3 view .LVU189
+ 829 0004 4DE0     		b	.L28
+ 830              	.LVL101:
+ 831              	.L29:
+ 204:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 832              		.loc 1 204 5 is_stmt 1 discriminator 3 view .LVU190
+ 833 0006 2300     		movs	r3, r4
+ 834 0008 2200     		movs	r2, r4
+ 835 000a 2100     		movs	r1, r4
+ 836 000c 0020     		movs	r0, #0
+ 837 000e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 838              	.LVL102:
+ 205:Src/ws2812.c  ****     WS2812_SetPixelColor(1,i,i,i);
+ 839              		.loc 1 205 5 discriminator 3 view .LVU191
+ 840 0012 2300     		movs	r3, r4
+ 841 0014 2200     		movs	r2, r4
+ 842 0016 2100     		movs	r1, r4
+ 843 0018 0120     		movs	r0, #1
+ 844 001a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 845              	.LVL103:
+ 206:Src/ws2812.c  ****     WS2812_SetPixelColor(2,i,i,i);
+ 846              		.loc 1 206 5 discriminator 3 view .LVU192
+ 847 001e 2300     		movs	r3, r4
+ 848 0020 2200     		movs	r2, r4
+ 849 0022 2100     		movs	r1, r4
+ 850 0024 0220     		movs	r0, #2
+ 851 0026 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 852              	.LVL104:
+ 207:Src/ws2812.c  ****     WS2812_SetPixelColor(3,i,i,i);
+ 853              		.loc 1 207 5 discriminator 3 view .LVU193
+ 854 002a 2300     		movs	r3, r4
+ 855 002c 2200     		movs	r2, r4
+ARM GAS  /tmp/ccMa26Q3.s 			page 20
+
+
+ 856 002e 2100     		movs	r1, r4
+ 857 0030 0320     		movs	r0, #3
+ 858 0032 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 859              	.LVL105:
+ 208:Src/ws2812.c  ****     WS2812_SetPixelColor(4,i,i,i);
+ 860              		.loc 1 208 5 discriminator 3 view .LVU194
+ 861 0036 2300     		movs	r3, r4
+ 862 0038 2200     		movs	r2, r4
+ 863 003a 2100     		movs	r1, r4
+ 864 003c 0420     		movs	r0, #4
+ 865 003e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 866              	.LVL106:
+ 209:Src/ws2812.c  ****     WS2812_SetPixelColor(5,i,i,i);
+ 867              		.loc 1 209 5 discriminator 3 view .LVU195
+ 868 0042 2300     		movs	r3, r4
+ 869 0044 2200     		movs	r2, r4
+ 870 0046 2100     		movs	r1, r4
+ 871 0048 0520     		movs	r0, #5
+ 872 004a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 873              	.LVL107:
+ 210:Src/ws2812.c  ****     WS2812_SetPixelColor(6,i,i,i);
+ 874              		.loc 1 210 5 discriminator 3 view .LVU196
+ 875 004e 2300     		movs	r3, r4
+ 876 0050 2200     		movs	r2, r4
+ 877 0052 2100     		movs	r1, r4
+ 878 0054 0620     		movs	r0, #6
+ 879 0056 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 880              	.LVL108:
+ 211:Src/ws2812.c  ****     WS2812_SetPixelColor(7,i,i,i);
+ 881              		.loc 1 211 5 discriminator 3 view .LVU197
+ 882 005a 2300     		movs	r3, r4
+ 883 005c 2200     		movs	r2, r4
+ 884 005e 2100     		movs	r1, r4
+ 885 0060 0720     		movs	r0, #7
+ 886 0062 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 887              	.LVL109:
+ 212:Src/ws2812.c  ****     WS2812_SetPixelColor(8,i,i,i);
+ 888              		.loc 1 212 5 discriminator 3 view .LVU198
+ 889 0066 2300     		movs	r3, r4
+ 890 0068 2200     		movs	r2, r4
+ 891 006a 2100     		movs	r1, r4
+ 892 006c 0820     		movs	r0, #8
+ 893 006e FFF7FEFF 		bl	WS2812_SetPixelColor
+ 894              	.LVL110:
+ 213:Src/ws2812.c  ****     WS2812_SetPixelColor(9,i,i,i);
+ 895              		.loc 1 213 5 discriminator 3 view .LVU199
+ 896 0072 2300     		movs	r3, r4
+ 897 0074 2200     		movs	r2, r4
+ 898 0076 2100     		movs	r1, r4
+ 899 0078 0920     		movs	r0, #9
+ 900 007a FFF7FEFF 		bl	WS2812_SetPixelColor
+ 901              	.LVL111:
+ 214:Src/ws2812.c  ****     WS2812_SetPixelColor(10,i,i,i);
+ 902              		.loc 1 214 5 discriminator 3 view .LVU200
+ 903 007e 2300     		movs	r3, r4
+ 904 0080 2200     		movs	r2, r4
+ 905 0082 2100     		movs	r1, r4
+ARM GAS  /tmp/ccMa26Q3.s 			page 21
+
+
+ 906 0084 0A20     		movs	r0, #10
+ 907 0086 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 908              	.LVL112:
+ 215:Src/ws2812.c  ****     WS2812_SetPixelColor(11,i,i,i);
+ 909              		.loc 1 215 5 discriminator 3 view .LVU201
+ 910 008a 2300     		movs	r3, r4
+ 911 008c 2200     		movs	r2, r4
+ 912 008e 2100     		movs	r1, r4
+ 913 0090 0B20     		movs	r0, #11
+ 914 0092 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 915              	.LVL113:
+ 216:Src/ws2812.c  ****     WS2812_Update();
+ 916              		.loc 1 216 5 discriminator 3 view .LVU202
+ 917 0096 FFF7FEFF 		bl	WS2812_Update
+ 918              	.LVL114:
+ 217:Src/ws2812.c  ****     HAL_Delay(90);
+ 919              		.loc 1 217 5 discriminator 3 view .LVU203
+ 920 009a 5A20     		movs	r0, #90
+ 921 009c FFF7FEFF 		bl	HAL_Delay
+ 922              	.LVL115:
+ 203:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 923              		.loc 1 203 32 discriminator 3 view .LVU204
+ 203:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 924              		.loc 1 203 34 is_stmt 0 discriminator 3 view .LVU205
+ 925 00a0 6408     		lsrs	r4, r4, #1
+ 926              	.LVL116:
+ 927              	.L28:
+ 203:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 928              		.loc 1 203 24 is_stmt 1 discriminator 1 view .LVU206
+ 203:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 929              		.loc 1 203 3 is_stmt 0 discriminator 1 view .LVU207
+ 930 00a2 002C     		cmp	r4, #0
+ 931 00a4 AFD1     		bne	.L29
+ 932              	.LBE2:
+ 933              	.LBB3:
+ 218:Src/ws2812.c  ****   }
+ 219:Src/ws2812.c  **** 
+ 220:Src/ws2812.c  ****   for(uint16_t i = 1; i < 256; i *= 2){
+ 934              		.loc 1 220 16 view .LVU208
+ 935 00a6 0125     		movs	r5, #1
+ 936 00a8 4FE0     		b	.L30
+ 937              	.LVL117:
+ 938              	.L31:
+ 221:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 939              		.loc 1 221 5 is_stmt 1 discriminator 3 view .LVU209
+ 940 00aa ECB2     		uxtb	r4, r5
+ 941 00ac 2300     		movs	r3, r4
+ 942 00ae 2200     		movs	r2, r4
+ 943 00b0 2100     		movs	r1, r4
+ 944 00b2 0020     		movs	r0, #0
+ 945 00b4 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 946              	.LVL118:
+ 222:Src/ws2812.c  ****     WS2812_SetPixelColor(1,i,i,i);
+ 947              		.loc 1 222 5 discriminator 3 view .LVU210
+ 948 00b8 2300     		movs	r3, r4
+ 949 00ba 2200     		movs	r2, r4
+ 950 00bc 2100     		movs	r1, r4
+ARM GAS  /tmp/ccMa26Q3.s 			page 22
+
+
+ 951 00be 0120     		movs	r0, #1
+ 952 00c0 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 953              	.LVL119:
+ 223:Src/ws2812.c  ****     WS2812_SetPixelColor(2,i,i,i);
+ 954              		.loc 1 223 5 discriminator 3 view .LVU211
+ 955 00c4 2300     		movs	r3, r4
+ 956 00c6 2200     		movs	r2, r4
+ 957 00c8 2100     		movs	r1, r4
+ 958 00ca 0220     		movs	r0, #2
+ 959 00cc FFF7FEFF 		bl	WS2812_SetPixelColor
+ 960              	.LVL120:
+ 224:Src/ws2812.c  ****     WS2812_SetPixelColor(3,i,i,i);
+ 961              		.loc 1 224 5 discriminator 3 view .LVU212
+ 962 00d0 2300     		movs	r3, r4
+ 963 00d2 2200     		movs	r2, r4
+ 964 00d4 2100     		movs	r1, r4
+ 965 00d6 0320     		movs	r0, #3
+ 966 00d8 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 967              	.LVL121:
+ 225:Src/ws2812.c  ****     WS2812_SetPixelColor(4,i,i,i);
+ 968              		.loc 1 225 5 discriminator 3 view .LVU213
+ 969 00dc 2300     		movs	r3, r4
+ 970 00de 2200     		movs	r2, r4
+ 971 00e0 2100     		movs	r1, r4
+ 972 00e2 0420     		movs	r0, #4
+ 973 00e4 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 974              	.LVL122:
+ 226:Src/ws2812.c  ****     WS2812_SetPixelColor(5,i,i,i);
+ 975              		.loc 1 226 5 discriminator 3 view .LVU214
+ 976 00e8 2300     		movs	r3, r4
+ 977 00ea 2200     		movs	r2, r4
+ 978 00ec 2100     		movs	r1, r4
+ 979 00ee 0520     		movs	r0, #5
+ 980 00f0 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 981              	.LVL123:
+ 227:Src/ws2812.c  ****     WS2812_SetPixelColor(6,i,i,i);
+ 982              		.loc 1 227 5 discriminator 3 view .LVU215
+ 983 00f4 2300     		movs	r3, r4
+ 984 00f6 2200     		movs	r2, r4
+ 985 00f8 2100     		movs	r1, r4
+ 986 00fa 0620     		movs	r0, #6
+ 987 00fc FFF7FEFF 		bl	WS2812_SetPixelColor
+ 988              	.LVL124:
+ 228:Src/ws2812.c  ****     WS2812_SetPixelColor(7,i,i,i);
+ 989              		.loc 1 228 5 discriminator 3 view .LVU216
+ 990 0100 2300     		movs	r3, r4
+ 991 0102 2200     		movs	r2, r4
+ 992 0104 2100     		movs	r1, r4
+ 993 0106 0720     		movs	r0, #7
+ 994 0108 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 995              	.LVL125:
+ 229:Src/ws2812.c  ****     WS2812_SetPixelColor(8,i,i,i);
+ 996              		.loc 1 229 5 discriminator 3 view .LVU217
+ 997 010c 2300     		movs	r3, r4
+ 998 010e 2200     		movs	r2, r4
+ 999 0110 2100     		movs	r1, r4
+ 1000 0112 0820     		movs	r0, #8
+ARM GAS  /tmp/ccMa26Q3.s 			page 23
+
+
+ 1001 0114 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 1002              	.LVL126:
+ 230:Src/ws2812.c  ****     WS2812_SetPixelColor(9,i,i,i);
+ 1003              		.loc 1 230 5 discriminator 3 view .LVU218
+ 1004 0118 2300     		movs	r3, r4
+ 1005 011a 2200     		movs	r2, r4
+ 1006 011c 2100     		movs	r1, r4
+ 1007 011e 0920     		movs	r0, #9
+ 1008 0120 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 1009              	.LVL127:
+ 231:Src/ws2812.c  ****     WS2812_SetPixelColor(10,i,i,i);
+ 1010              		.loc 1 231 5 discriminator 3 view .LVU219
+ 1011 0124 2300     		movs	r3, r4
+ 1012 0126 2200     		movs	r2, r4
+ 1013 0128 2100     		movs	r1, r4
+ 1014 012a 0A20     		movs	r0, #10
+ 1015 012c FFF7FEFF 		bl	WS2812_SetPixelColor
+ 1016              	.LVL128:
+ 232:Src/ws2812.c  ****     WS2812_SetPixelColor(11,i,i,i);
+ 1017              		.loc 1 232 5 discriminator 3 view .LVU220
+ 1018 0130 2300     		movs	r3, r4
+ 1019 0132 2200     		movs	r2, r4
+ 1020 0134 2100     		movs	r1, r4
+ 1021 0136 0B20     		movs	r0, #11
+ 1022 0138 FFF7FEFF 		bl	WS2812_SetPixelColor
+ 1023              	.LVL129:
+ 233:Src/ws2812.c  ****     WS2812_Update();
+ 1024              		.loc 1 233 5 discriminator 3 view .LVU221
+ 1025 013c FFF7FEFF 		bl	WS2812_Update
+ 1026              	.LVL130:
+ 234:Src/ws2812.c  ****     HAL_Delay(90);
+ 1027              		.loc 1 234 5 discriminator 3 view .LVU222
+ 1028 0140 5A20     		movs	r0, #90
+ 1029 0142 FFF7FEFF 		bl	HAL_Delay
+ 1030              	.LVL131:
+ 220:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 1031              		.loc 1 220 32 discriminator 3 view .LVU223
+ 220:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 1032              		.loc 1 220 34 is_stmt 0 discriminator 3 view .LVU224
+ 1033 0146 6D00     		lsls	r5, r5, #1
+ 1034              	.LVL132:
+ 220:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 1035              		.loc 1 220 34 discriminator 3 view .LVU225
+ 1036 0148 ADB2     		uxth	r5, r5
+ 1037              	.LVL133:
+ 1038              	.L30:
+ 220:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 1039              		.loc 1 220 23 is_stmt 1 discriminator 1 view .LVU226
+ 220:Src/ws2812.c  ****     WS2812_SetPixelColor(0,i,i,i);
+ 1040              		.loc 1 220 3 is_stmt 0 discriminator 1 view .LVU227
+ 1041 014a FF2D     		cmp	r5, #255
+ 1042 014c ADD9     		bls	.L31
+ 1043              	.LBE3:
+ 235:Src/ws2812.c  ****   }
+ 236:Src/ws2812.c  **** 
+ 237:Src/ws2812.c  **** }
+ 1044              		.loc 1 237 1 view .LVU228
+ARM GAS  /tmp/ccMa26Q3.s 			page 24
+
+
+ 1045              		@ sp needed
+ 1046              	.LVL134:
+ 1047              		.loc 1 237 1 view .LVU229
+ 1048 014e 70BD     		pop	{r4, r5, r6, pc}
+ 1049              		.cfi_endproc
+ 1050              	.LFE45:
+ 1052              		.section	.bss.WS2812_Buffer,"aw",%nobits
+ 1053              		.align	2
+ 1054              		.set	.LANCHOR0,. + 0
+ 1057              	WS2812_Buffer:
+ 1058 0000 00000000 		.space	108
+ 1058      00000000 
+ 1058      00000000 
+ 1058      00000000 
+ 1058      00000000 
+ 1059              		.section	.bss.WS2812_Reset,"aw",%nobits
+ 1060              		.align	2
+ 1061              		.set	.LANCHOR1,. + 0
+ 1064              	WS2812_Reset:
+ 1065 0000 0000     		.space	2
+ 1066              		.text
+ 1067              	.Letext0:
+ 1068              		.file 2 "/home/vahid/ARM-Toolchain/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/include/machine
+ 1069              		.file 3 "/home/vahid/ARM-Toolchain/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/include/sys/_st
+ 1070              		.file 4 "Drivers/CMSIS/Device/ST/STM32F0xx/Include/system_stm32f0xx.h"
+ 1071              		.file 5 "Drivers/CMSIS/Device/ST/STM32F0xx/Include/stm32f030x6.h"
+ 1072              		.file 6 "Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_def.h"
+ 1073              		.file 7 "Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_dma.h"
+ 1074              		.file 8 "Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi.h"
+ 1075              		.file 9 "Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h"
+ARM GAS  /tmp/ccMa26Q3.s 			page 25
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 ws2812.c
+     /tmp/ccMa26Q3.s:16     .text.WS2812_Write:0000000000000000 $t
+     /tmp/ccMa26Q3.s:24     .text.WS2812_Write:0000000000000000 WS2812_Write
+     /tmp/ccMa26Q3.s:279    .text.WS2812_Write:00000000000000a8 $d
+     /tmp/ccMa26Q3.s:284    .text.WS2812_Color:0000000000000000 $t
+     /tmp/ccMa26Q3.s:291    .text.WS2812_Color:0000000000000000 WS2812_Color
+     /tmp/ccMa26Q3.s:317    .text.WS2812_SetPixelColor:0000000000000000 $t
+     /tmp/ccMa26Q3.s:324    .text.WS2812_SetPixelColor:0000000000000000 WS2812_SetPixelColor
+     /tmp/ccMa26Q3.s:361    .text.WS2812_Update:0000000000000000 $t
+     /tmp/ccMa26Q3.s:368    .text.WS2812_Update:0000000000000000 WS2812_Update
+     /tmp/ccMa26Q3.s:404    .text.WS2812_Update:0000000000000024 $d
+     /tmp/ccMa26Q3.s:411    .text.WS2812_Test:0000000000000000 $t
+     /tmp/ccMa26Q3.s:418    .text.WS2812_Test:0000000000000000 WS2812_Test
+     /tmp/ccMa26Q3.s:802    .text.WS2812_TARDISEffect:0000000000000000 $t
+     /tmp/ccMa26Q3.s:809    .text.WS2812_TARDISEffect:0000000000000000 WS2812_TARDISEffect
+     /tmp/ccMa26Q3.s:1053   .bss.WS2812_Buffer:0000000000000000 $d
+     /tmp/ccMa26Q3.s:1057   .bss.WS2812_Buffer:0000000000000000 WS2812_Buffer
+     /tmp/ccMa26Q3.s:1060   .bss.WS2812_Reset:0000000000000000 $d
+     /tmp/ccMa26Q3.s:1064   .bss.WS2812_Reset:0000000000000000 WS2812_Reset
+
+UNDEFINED SYMBOLS
+HAL_SPI_Transmit
+hspi1
+HAL_Delay
